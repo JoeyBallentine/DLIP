@@ -1,5 +1,6 @@
 import os
 import tqdm
+from multiprocessing.pool import ThreadPool as ThreadPool
 
 from configs import Config
 from data import DataGenerator
@@ -7,7 +8,9 @@ from kernelGAN import KernelGAN
 from learner import Learner
 
 
-def train(conf):
+def train(filename):
+    filename, args = filename
+    conf = Config().parse(create_params(filename, args))
     gan = KernelGAN(conf)
     learner = Learner()
     data = DataGenerator(conf, gan)
@@ -25,15 +28,17 @@ def main():
     prog = argparse.ArgumentParser()
     prog.add_argument('--input-dir', '-i', type=str, default='test_images', help='path to image input directory.')
     prog.add_argument('--output-dir', '-o', type=str, default='results', help='path to image output directory.')
-    prog.add_argument('--X4', action='store_true', help='The wanted SR scale factor')
-    prog.add_argument('--SR', action='store_true', help='when activated - ZSSR is not performed')
-    prog.add_argument('--real', action='store_true', help='ZSSRs configuration is for real images')
-    prog.add_argument('--noise_scale', type=float, default=1., help='ZSSR uses this to partially de-noise images')
+    prog.add_argument('--X4', action='store_true', help='The wanted SR scale factor.')
+    prog.add_argument('--SR', action='store_true', help='when activated - ZSSR is not performed.')
+    prog.add_argument('--real', action='store_true', help='ZSSRs configuration is for real images.')
+    prog.add_argument('--noise_scale', type=float, default=1., help='ZSSR uses this to partially de-noise images.')
+    prog.add_argument('--threads', type=int, default=1, help='Number of threads for multithreading.')
     args = prog.parse_args()
+
+    pool = ThreadPool(args.threads)
+    files = [(file, args) for file in os.listdir(os.path.abspath(args.input_dir))]
     # Run the KernelGAN sequentially on all images in the input directory
-    for filename in os.listdir(os.path.abspath(args.input_dir)):
-        conf = Config().parse(create_params(filename, args))
-        train(conf)
+    pool.map(train, files)
     prog.exit(0)
 
 

@@ -1,6 +1,6 @@
 import os
 import tqdm
-from multiprocessing.pool import ThreadPool as ThreadPool
+from multiprocessing.pool import ThreadPool
 
 from configs import Config
 from data import DataGenerator
